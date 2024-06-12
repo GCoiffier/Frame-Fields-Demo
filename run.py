@@ -42,7 +42,8 @@ def compute_frame_field():
     ff_var = np.stack([np.real(ff_var), np.imag(ff_var)], axis=-1)
     bX, bY = ff.conn._baseX.as_array(), ff.conn._baseY.as_array() # local bases
     ps_surface.add_tangent_vector_quantity("frames", ff_var, 
-        bX, bY, n_sym=order, defined_on=FF_element_selected, enabled=True)
+        bX, bY, n_sym=order, defined_on=FF_element_selected, 
+        enabled=True,length=0.008, radius=0.002, color=(0,0,0))
     
     ### Export singularities
     if FF_element_selected == "vertices":
@@ -50,13 +51,13 @@ def compute_frame_field():
             surface_mesh.faces.delete_attribute("singuls") # clear data
         ff.flag_singularities()
         singus = surface_mesh.faces.get_attribute("singuls").as_array(len(surface_mesh.faces))
-        ps_surface.add_scalar_quantity("singularities", singus, defined_on="faces", enabled=True, vminmax=(-1., 1.))
+        ps_surface.add_scalar_quantity("singularities", singus, defined_on="faces", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
     elif FF_element_selected == "faces":
         if surface_mesh.vertices.has_attribute("singuls"):
             surface_mesh.vertices.delete_attribute("singuls")
         ff.flag_singularities()
         singus = surface_mesh.vertices.get_attribute("singuls").as_array(len(surface_mesh.vertices))
-        ps_surface.add_scalar_quantity("singularities", singus, defined_on="vertices", enabled=True, vminmax=(-1., 1.))
+        ps_surface.add_scalar_quantity("singularities", singus, defined_on="vertices", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
     
 
 def GUI_callback():
@@ -99,13 +100,14 @@ def GUI_callback():
                 FF_element_selected = val
         psim.EndCombo()
     psim.PopItemWidth()
-    
+
     if(psim.Button("RUN")): compute_frame_field()
 
 
 if __name__ == "__main__":
     try:
         surface_mesh = M.mesh.load(sys.argv[1])
+        surface_mesh = M.transform.fit_into_unit_cube(surface_mesh)
     except Exception as e:
         print(f"Could not load input mesh '{sys.argv[1]}'. Supported formats are .obj, .mesh, .off, .stl, .geogram_ascii")
         print("Exiting.")
