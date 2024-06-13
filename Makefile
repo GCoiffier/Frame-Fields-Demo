@@ -21,7 +21,7 @@ $(INSTALL_STAMP): $(PYTHON) requirements.txt
 	$(PYTHON) -m pip install -r requirements.txt
 	touch $(INSTALL_STAMP)
 run: $(INSTALL_STAMP)
-	$(PYTHON) run.py data/half_sphere.obj
+	$(PYTHON) run.py data/fandisk.off
 clean:
 	@rm -rf $(BUILDDIR)
 	rm -rf $(VENV) .pytest_cache .coverage

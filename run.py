@@ -15,13 +15,20 @@ order : int = 4
 cotans : bool = True
 n_smooth : int = 3
 alpha : float = 0.1
-FF_elements = ["vertices", "faces"]
+FF_elements = ["faces", "vertices"]
 FF_element_selected = FF_elements[0]
 surface_mesh = None
+
 ps_surface = None
+ps_singularities = None
+
+barycenters = None
 
 def compute_frame_field():
-    global ps_surface, surface_mesh, cadFF, align_features, order, cotans, n_smooth, alpha, FF_elements, FF_element_selected
+    global ps_surface, ps_singularities, surface_mesh, \
+        cadFF, align_features, order, cotans, n_smooth, alpha, FF_elements, FF_element_selected, \
+        barycenters
+    
     print("OPTIONS:", {
         "element" : FF_element_selected,
         "order" : order,
@@ -43,22 +50,34 @@ def compute_frame_field():
     bX, bY = ff.conn._baseX.as_array(), ff.conn._baseY.as_array() # local bases
     ps_surface.add_tangent_vector_quantity("frames", ff_var, 
         bX, bY, n_sym=order, defined_on=FF_element_selected, 
-        enabled=True,length=0.008, radius=0.002, color=(0,0,0))
+        enabled=True,length=0.007, radius=0.0015)
     
     ### Export singularities
     if FF_element_selected == "vertices":
         if surface_mesh.faces.has_attribute("singuls"):
             surface_mesh.faces.delete_attribute("singuls") # clear data
+        
+        if not surface_mesh.faces.has_attribute("barycenter"):
+            M.attributes.face_barycenter(surface_mesh)
+            barycenters = surface_mesh.faces.get_attribute("barycenter").as_array(len(surface_mesh.faces))
+
         ff.flag_singularities()
-        singus = surface_mesh.faces.get_attribute("singuls").as_array(len(surface_mesh.faces))
-        ps_surface.add_scalar_quantity("singularities", singus, defined_on="faces", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
+        singus_indices = surface_mesh.faces.get_attribute("singuls").as_array(len(surface_mesh.faces))
+        # ps_surface.add_scalar_quantity("singularities", singus_indices, defined_on="faces", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
+        singus_points = barycenters[singus_indices!=0]
+        ps_singularities = ps.register_point_cloud("singularities", singus_points, enabled=True)
+        ps_singularities.add_scalar_quantity("Indices", singus_indices[singus_indices != 0], datatype="symmetric", vminmax=(-1, 1), enabled=True)
+
     elif FF_element_selected == "faces":
         if surface_mesh.vertices.has_attribute("singuls"):
             surface_mesh.vertices.delete_attribute("singuls")
         ff.flag_singularities()
-        singus = surface_mesh.vertices.get_attribute("singuls").as_array(len(surface_mesh.vertices))
-        ps_surface.add_scalar_quantity("singularities", singus, defined_on="vertices", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
-    
+        singus_indices = surface_mesh.vertices.get_attribute("singuls").as_array(len(surface_mesh.vertices))
+        # ps_surface.add_scalar_quantity("singularities", singus_indices, defined_on="vertices", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
+        singus_points = np.array(surface_mesh.vertices)[singus_indices!=0]
+        ps_singularities = ps.register_point_cloud("singularities", singus_points, enabled=True)
+        ps_singularities.add_scalar_quantity("Indices", singus_indices[singus_indices != 0], datatype="symmetric",vminmax=(-1,1), enabled=True)
+
 
 def GUI_callback():
     global cadFF, align_features, order, cotans, n_smooth, alpha, FF_elements, FF_element_selected
