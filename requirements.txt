@@ -1,3 +1,2 @@
 mouette
-numba
 polyscope
