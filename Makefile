@@ -23,7 +23,6 @@ $(INSTALL_STAMP): $(PYTHON) requirements.txt
 run: $(INSTALL_STAMP)
 	$(PYTHON) run.py data/fandisk.off
 clean:
-	@rm -rf $(BUILDDIR)
 	rm -rf $(VENV) .pytest_cache .coverage
 	find . -type f -name *.pyc -delete
 	find . -type d -name __pycache__ -delete

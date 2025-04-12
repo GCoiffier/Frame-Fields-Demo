@@ -14,20 +14,22 @@ align_features : bool = True
 order : int = 4
 cotans : bool = True
 n_smooth : int = 3
-alpha : float = 0.1
-FF_elements = ["faces", "vertices"]
+alpha : float = 1.
+FF_elements = ["faces", "vertices", "edges"]
 FF_element_selected = FF_elements[0]
 surface_mesh = None
 
 ps_surface = None
 ps_singularities = None
 
-barycenters = None
+face_barycenters = None
+
+YELLOW = [1., 216/255, 53/255]
 
 def compute_frame_field():
     global ps_surface, ps_singularities, surface_mesh, \
         cadFF, align_features, order, cotans, n_smooth, alpha, FF_elements, FF_element_selected, \
-        barycenters
+        face_barycenters, edge_barycenters
     
     print("OPTIONS:", {
         "element" : FF_element_selected,
@@ -37,6 +39,9 @@ def compute_frame_field():
         "n_smooth" : n_smooth,
         "alpha" : alpha,
     })
+    ps_surface.remove_all_quantities()
+    ps.remove_curve_network("ff_edges", error_if_absent=False)
+    ps.remove_point_cloud("singularities", error_if_absent=False)
 
     ff = M.framefield.SurfaceFrameField(surface_mesh, FF_element_selected, 
         order, align_features, verbose=True, n_smooth=n_smooth, 
@@ -48,23 +53,27 @@ def compute_frame_field():
     ff_var = np.array([cmath.rect(1., cmath.phase(x)/order) for x in ff.var])
     ff_var = np.stack([np.real(ff_var), np.imag(ff_var)], axis=-1)
     bX, bY = ff.conn._baseX.as_array(), ff.conn._baseY.as_array() # local bases
-    ps_surface.add_tangent_vector_quantity("frames", ff_var, 
-        bX, bY, n_sym=order, defined_on=FF_element_selected, 
-        enabled=True,length=0.007, radius=0.0015)
+    
+    if FF_element_selected == "edges":
+        ff_mesh = ff.export_as_mesh()
+        ps.register_curve_network("ff_edges", np.asarray(ff_mesh.vertices), np.asarray(ff_mesh.edges), radius=0.001, color=YELLOW)
+
+    else:
+        ps_surface.add_tangent_vector_quantity("frames", ff_var, 
+            bX, bY, n_sym=order, defined_on=FF_element_selected, 
+            enabled=True, length=0.01, radius=0.0015, color=YELLOW)
     
     ### Export singularities
     if FF_element_selected == "vertices":
         if surface_mesh.faces.has_attribute("singuls"):
             surface_mesh.faces.delete_attribute("singuls") # clear data
         
-        if not surface_mesh.faces.has_attribute("barycenter"):
-            M.attributes.face_barycenter(surface_mesh)
-            barycenters = surface_mesh.faces.get_attribute("barycenter").as_array(len(surface_mesh.faces))
+        if face_barycenters is None:
+            face_barycenters = M.attributes.face_barycenter(surface_mesh, persistent=False).as_array(len(surface_mesh.faces))
 
         ff.flag_singularities()
         singus_indices = surface_mesh.faces.get_attribute("singuls").as_array(len(surface_mesh.faces))
-        # ps_surface.add_scalar_quantity("singularities", singus_indices, defined_on="faces", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
-        singus_points = barycenters[singus_indices!=0]
+        singus_points = face_barycenters[singus_indices!=0]
         ps_singularities = ps.register_point_cloud("singularities", singus_points, enabled=True)
         ps_singularities.add_scalar_quantity("Indices", singus_indices[singus_indices != 0], datatype="symmetric", vminmax=(-1, 1), enabled=True)
 
@@ -76,7 +85,7 @@ def compute_frame_field():
         # ps_surface.add_scalar_quantity("singularities", singus_indices, defined_on="vertices", enabled=True, datatype="symmetric", vminmax=(-1., 1.))
         singus_points = np.array(surface_mesh.vertices)[singus_indices!=0]
         ps_singularities = ps.register_point_cloud("singularities", singus_points, enabled=True)
-        ps_singularities.add_scalar_quantity("Indices", singus_indices[singus_indices != 0], datatype="symmetric",vminmax=(-1,1), enabled=True)
+        ps_singularities.add_scalar_quantity("Indices", singus_indices[singus_indices != 0], datatype="symmetric",vminmax=(-1,1), enabled=True)        
 
 
 def GUI_callback():
