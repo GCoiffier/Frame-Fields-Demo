@@ -4,6 +4,9 @@ A simple visualizer for surface frame field algorithms in [mouette](https://gith
 
 ![image](https://github.com/GCoiffier/Frame-Fields-Demo/assets/20912374/c806c28f-1bd4-4dcd-af27-18700c9eeb3b)
 
+
+You can find suitable input data here: [https://github.com/alecjacobson/common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
+
 ### How to run
 - `make run` will create a python virtual environnement, install everything in it and run the program on the fandisk model.
 - `python run.py <model>` will run the program on the specified model. Different models are available in the data/ folder.
