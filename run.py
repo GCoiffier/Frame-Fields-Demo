@@ -187,8 +187,7 @@ def GUI_callback():
     changed = psim.BeginCombo("Defined on", FF_element_selected)
     if changed:
         for val in ["faces", "vertices", "edges"]:
-            _, selected = psim.Selectable(val, FF_element_selected==val)
-            if selected:
+            if psim.Selectable(val, FF_element_selected==val):
                 FF_element_selected = val
         psim.EndCombo()
     psim.PopItemWidth()
@@ -216,8 +215,7 @@ def GUI_callback():
     changed = psim.BeginCombo("Defined on ", curv_element_selected)
     if changed:
         for val in ["faces", "vertices"]:
-            _, selected = psim.Selectable(val, curv_element_selected==val)
-            if selected:
+            if psim.Selectable(val, curv_element_selected==val):
                 curv_element_selected = val
         psim.EndCombo()
     psim.PopItemWidth()
